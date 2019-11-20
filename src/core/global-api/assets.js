@@ -7,6 +7,8 @@ export function initAssetRegisters (Vue: GlobalAPI) {
   /**
    * Create asset registration methods.
    */
+  // 遍历 ASSET_TYPES 数组，为 Vue 定义相应方法
+  // ASSET_TYPES 包括了directive、 component、filter
   ASSET_TYPES.forEach(type => {
     Vue[type] = function (
       id: string,
@@ -26,6 +28,7 @@ export function initAssetRegisters (Vue: GlobalAPI) {
         if (type === 'directive' && typeof definition === 'function') {
           definition = { bind: definition, update: definition }
         }
+        // 存储资源并赋值
         this.options[type + 's'][id] = definition
         return definition
       }
