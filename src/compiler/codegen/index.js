@@ -77,6 +77,8 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     } else {
       let data
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
+        // 生成元素的属性/指令/事件等
+        // 处理各种指令，包括 genDirectives（model/text/html）
         data = genData(el, state)
       }
 
@@ -315,6 +317,7 @@ function genDirectives (el: ASTElement, state: CodegenState): string | void {
   for (i = 0, l = dirs.length; i < l; i++) {
     dir = dirs[i]
     needRuntime = true
+    // 指令directives: model text html
     const gen: DirectiveFunction = state.directives[dir.name]
     if (gen) {
       // compile-time directive that manipulates AST.
