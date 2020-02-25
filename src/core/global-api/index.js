@@ -54,7 +54,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     return obj
   }
   // 初始化 Vue.options 对象，并给其扩展
-  // components/directives/filters/_base
+  // components/directives/filters
   Vue.options = Object.create(null)
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)

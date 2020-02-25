@@ -933,7 +933,7 @@ if (process.env.NODE_ENV !== 'production') {
 /*  */
 
 var uid = 0;
-
+// dep 是个可观察对象，可以有多个指令订阅它
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
@@ -943,20 +943,25 @@ var Dep = function Dep () {
   this.subs = [];
 };
 
+// 添加新的订阅者 watcher 对象
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
 
+// 移除订阅者
 Dep.prototype.removeSub = function removeSub (sub) {
   remove(this.subs, sub);
 };
 
+// 将观察对象和 watcher 建立依赖
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
+    // 如果 target 存在，把 dep 对象添加到 watcher 的依赖中
     Dep.target.addDep(this);
   }
 };
 
+// 发布通知
 Dep.prototype.notify = function notify () {
   // stabilize the subscriber list first
   var subs = this.subs.slice();
@@ -966,11 +971,13 @@ Dep.prototype.notify = function notify () {
     // order
     subs.sort(function (a, b) { return a.id - b.id; });
   }
+  // 调用每个订阅者的update方法实现更新
   for (var i = 0, l = subs.length; i < l; i++) {
     subs[i].update();
   }
 };
-
+// Dep.target 用来存放目前正在使用的watcher
+// 全局唯一，并且一次也只能有一个watcher被使用
 // The current target watcher being evaluated.
 // This is globally unique because only one watcher
 // can be evaluated at a time.
@@ -1029,8 +1036,9 @@ Object.defineProperties( VNode.prototype, prototypeAccessors );
  */
 
 var arrayProto = Array.prototype;
+// 克隆数组的原型
 var arrayMethods = Object.create(arrayProto);
-
+// 修改数组元素的方法
 var methodsToPatch = [
   'push',
   'pop',
@@ -1046,12 +1054,16 @@ var methodsToPatch = [
  */
 methodsToPatch.forEach(function (method) {
   // cache original method
+  // 保存数组原方法
   var original = arrayProto[method];
+  // 调用 Object.defineProperty() 重新定义修改数组的方法
   def(arrayMethods, method, function mutator () {
     var args = [], len = arguments.length;
     while ( len-- ) args[ len ] = arguments[ len ];
 
+    // 执行数组的原始方法
     var result = original.apply(this, args);
+    // 获取数组对象的 ob 对象
     var ob = this.__ob__;
     var inserted;
     switch (method) {
@@ -1063,8 +1075,10 @@ methodsToPatch.forEach(function (method) {
         inserted = args.slice(2);
         break
     }
+    // 对插入的新元素，重新遍历数组元素设置为响应式数据
     if (inserted) { ob.observeArray(inserted); }
     // notify change
+    // 调用了修改数组的方法，调用数组的ob对象发送通知
     ob.dep.notify();
     return result
   });
@@ -1089,16 +1103,21 @@ var shouldObserve = true;
 var Observer = function Observer (value) {
   this.value = value;
   this.dep = new Dep();
+  // 初始化实例的 vmCount 为0
   this.vmCount = 0;
+  // 将实例挂载到观测对象的 __ob__ 属性
   def(value, '__ob__', this);
+  // 数组的响应式处理
   if (Array.isArray(value)) {
     if (hasProto) {
       protoAugment(value, arrayMethods);
     } else {
       copyAugment(value, arrayMethods, arrayKeys);
     }
+    // 为数组中的每一个对象创建一个 observer 实例
     this.observeArray(value);
   } else {
+    // 编译对象中的每一个属性，转换成 setter/getter
     this.walk(value);
   }
 };
@@ -1109,7 +1128,9 @@ var Observer = function Observer (value) {
  * value type is Object.
  */
 Observer.prototype.walk = function walk (obj) {
+  // 获取观察对象的每一个属性
   var keys = Object.keys(obj);
+  // 遍历每一个属性，设置为响应式数据
   for (var i = 0; i < keys.length; i++) {
     defineReactive(obj, keys[i]);
   }
@@ -1154,10 +1175,12 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 function observe (value, asRootData) {
+  // 判断 value 是否是对象
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   var ob;
+  // 如果 value 有 __ob__(observer对象) 属性 结束
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__;
   } else if (
@@ -1167,6 +1190,7 @@ function observe (value, asRootData) {
     Object.isExtensible(value) &&
     !value._isVue
   ) {
+    // 创建一个 Observer 对象
     ob = new Observer(value);
   }
   if (asRootData && ob) {
@@ -1174,7 +1198,7 @@ function observe (value, asRootData) {
   }
   return ob
 }
-
+// 为一个对象定义一个响应式的属性
 /**
  * Define a reactive property on an Object.
  */
@@ -1185,39 +1209,49 @@ function defineReactive (
   customSetter,
   shallow
 ) {
+  // 创建依赖对象实例
   var dep = new Dep();
-
+  // 获取 obj 的属性描述符对象
   var property = Object.getOwnPropertyDescriptor(obj, key);
   if (property && property.configurable === false) {
     return
   }
-
+  // 提供预定义的存取器函数
   // cater for pre-defined getter/setters
   var getter = property && property.get;
   var setter = property && property.set;
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key];
   }
-
+  // 判断是否递归观察子对象，并将子对象属性都转换成 getter/setter，返回子观察对象
   var childOb = !shallow && observe(val);
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter () {
+      // 如果预定义的 getter 存在则 value 等于getter 调用的返回值
+      // 否则直接赋予属性值
       var value = getter ? getter.call(obj) : val;
+      // 如果存在当前依赖目标，即 watcher 对象，则建立依赖
       if (Dep.target) {
         dep.depend();
+        // 如果子观察目标存在，建立子对象的依赖关系
         if (childOb) {
           childOb.dep.depend();
+          // 如果属性是数组，则特殊处理收集数组对象依赖
           if (Array.isArray(value)) {
             dependArray(value);
           }
         }
       }
+      // 返回属性值
       return value
     },
     set: function reactiveSetter (newVal) {
+      // 如果预定义的 getter 存在则 value 等于getter 调用的返回值
+      // 否则直接赋予属性值
       var value = getter ? getter.call(obj) : val;
+      // 如果新值等于旧值或者新值旧值为null则不执行
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
@@ -1226,14 +1260,18 @@ function defineReactive (
       if (process.env.NODE_ENV !== 'production' && customSetter) {
         customSetter();
       }
+      // 如果没有 setter 直接返回
       // #7981: for accessor properties without setter
       if (getter && !setter) { return }
+      // 如果预定义setter存在则调用，否则直接更新新值
       if (setter) {
         setter.call(obj, newVal);
       } else {
         val = newVal;
       }
+      // 如果新值是对象，观察子对象并返回 子的 observer 对象
       childOb = !shallow && observe(newVal);
+      // 发布更改通知
       dep.notify();
     }
   });
@@ -1250,16 +1288,22 @@ function set (target, key, val) {
   ) {
     warn(("Cannot set reactive property on undefined, null, or primitive value: " + ((target))));
   }
+  // 判断 target 是否是对象，key 是否是合法的索引
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key);
+    // 通过 splice 对key位置的元素进行替换
+    // splice 在 array.js进行了响应化的处理
     target.splice(key, 1, val);
     return val
   }
+  // 如果 key 在对象中已经存在直接赋值
   if (key in target && !(key in Object.prototype)) {
     target[key] = val;
     return val
   }
+  // 获取 target 中的 observer 对象
   var ob = (target).__ob__;
+  // 如果 target 是 vue 实例或者$data 直接返回
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -1267,11 +1311,14 @@ function set (target, key, val) {
     );
     return val
   }
+  // 如果 ob 不存在，target 不是响应式对象直接赋值
   if (!ob) {
     target[key] = val;
     return val
   }
+  // 把 key 设置为响应式属性
   defineReactive(ob.value, key, val);
+  // 发送通知
   ob.dep.notify();
   return val
 }
@@ -2341,6 +2388,7 @@ function parse (
   template,
   options
 ) {
+  // 1. 解析 options
   warn$1 = options.warn || baseWarn;
 
   platformIsPreTag = options.isPreTag || no;
@@ -2462,6 +2510,7 @@ function parse (
     }
   }
 
+  // 2. 对模板解析
   parseHTML(template, {
     warn: warn$1,
     expectHTML: options.expectHTML,
@@ -2471,6 +2520,7 @@ function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // 解析过程中的回调函数，生成 AST
     start: function start (tag, attrs, unary, start$1, end) {
       // check namespace.
       // inherit parent ns if there is one
@@ -2538,6 +2588,8 @@ function parse (
         processRawAttrs(element);
       } else if (!element.processed) {
         // structural directives
+        // 结构化的指令
+        // v-for
         processFor(element);
         processIf(element);
         processOnce(element);
@@ -3535,8 +3587,10 @@ function optimize (root, options) {
   isStaticKey = genStaticKeysCached(options.staticKeys || '');
   isPlatformReservedTag = options.isReservedTag || no;
   // first pass: mark all non-static nodes.
+  // 标记非静态节点
   markStatic(root);
   // second pass: mark static roots.
+  // 标记静态根节点
   markStaticRoots(root, false);
 }
 
@@ -3548,11 +3602,14 @@ function genStaticKeys$1 (keys) {
 }
 
 function markStatic (node) {
+  // 判断当前 astNode 是否是静态的
   node.static = isStatic(node);
+  // 元素节点
   if (node.type === 1) {
     // do not make component slot content static. this avoids
     // 1. components not able to mutate slot nodes
     // 2. static slot content fails for hot-reloading
+    // 是组件，不是slot，没有inline-template
     if (
       !isPlatformReservedTag(node.tag) &&
       node.tag !== 'slot' &&
@@ -3560,10 +3617,13 @@ function markStatic (node) {
     ) {
       return
     }
+    // 遍历 children
     for (var i = 0, l = node.children.length; i < l; i++) {
       var child = node.children[i];
+      // 标记静态
       markStatic(child);
       if (!child.static) {
+        // 如果有一个 child 不是 static，当前 node 不是static
         node.static = false;
       }
     }
@@ -3587,6 +3647,8 @@ function markStaticRoots (node, isInFor) {
     // For a node to qualify as a static root, it should have children that
     // are not just static text. Otherwise the cost of hoisting out will
     // outweigh the benefits and it's better off to just always render it fresh.
+    // 如果一个元素内只有文本节点，此时这个元素不是静态的Root
+    // Vue 认为这种优化会带来负面的影响
     if (node.static && node.children.length && !(
       node.children.length === 1 &&
       node.children[0].type === 3
@@ -3596,6 +3658,7 @@ function markStaticRoots (node, isInFor) {
     } else {
       node.staticRoot = false;
     }
+    // 检测当前节点的子节点中是否有静态的Root
     if (node.children) {
       for (var i = 0, l = node.children.length; i < l; i++) {
         markStaticRoots(node.children[i], isInFor || !!node.for);
@@ -3610,19 +3673,20 @@ function markStaticRoots (node, isInFor) {
 }
 
 function isStatic (node) {
+  // 表达式
   if (node.type === 2) { // expression
     return false
   }
   if (node.type === 3) { // text
     return true
   }
-  return !!(node.pre || (
+  return !!(node.pre || (   // pre
     !node.hasBindings && // no dynamic bindings
     !node.if && !node.for && // not v-if or v-for or v-else
-    !isBuiltInTag(node.tag) && // not a built-in
-    isPlatformReservedTag(node.tag) && // not a component
-    !isDirectChildOfTemplateFor(node) &&
-    Object.keys(node).every(isStaticKey)
+    !isBuiltInTag(node.tag) && // not a built-in 不能是内置组件
+    isPlatformReservedTag(node.tag) && // not a component  不能是组件
+    !isDirectChildOfTemplateFor(node) &&  // 不能是v-for下的直接子节点
+    Object.keys(node).every(isStaticKey) 
   ))
 }
 
@@ -3885,6 +3949,8 @@ function genElement (el, state) {
     } else {
       var data;
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
+        // 生成元素的属性/指令/事件等
+        // 处理各种指令，包括 genDirectives（model/text/html）
         data = genData$2(el, state);
       }
 
@@ -4105,6 +4171,7 @@ function genDirectives (el, state) {
   for (i = 0, l = dirs.length; i < l; i++) {
     dir = dirs[i];
     needRuntime = true;
+    // 指令directives: model text html
     var gen = state.directives[dir.name];
     if (gen) {
       // compile-time directive that manipulates AST.
@@ -4602,6 +4669,7 @@ function createCompileToFunctionFn (compile) {
     }
 
     // check cache
+    // 1. 读取缓存中的 CompiledFunctionResult 对象，如果有直接返回
     var key = options.delimiters
       ? String(options.delimiters) + template
       : template;
@@ -4610,6 +4678,7 @@ function createCompileToFunctionFn (compile) {
     }
 
     // compile
+    // 2. 把模板编译为编译对象(render, staticRenderFns)，字符串形式的js代码
     var compiled = compile(template, options);
 
     // check compilation errors/tips
@@ -4643,6 +4712,8 @@ function createCompileToFunctionFn (compile) {
     // turn code into functions
     var res = {};
     var fnGenErrors = [];
+
+    // 3. 把字符串形式的js代码转换成js方法
     res.render = createFunction(compiled.render, fnGenErrors);
     res.staticRenderFns = compiled.staticRenderFns.map(function (code) {
       return createFunction(code, fnGenErrors)
@@ -4666,7 +4737,7 @@ function createCompileToFunctionFn (compile) {
         );
       }
     }
-
+    // 4. 缓存并返回res对象(render, staticRenderFns方法)
     return (cache[key] = res)
   }
 }
@@ -4674,6 +4745,8 @@ function createCompileToFunctionFn (compile) {
 /*  */
 
 function createCompilerCreator (baseCompile) {
+  // baseOptions 平台相关的options
+  // src\platforms\web\compiler\options.js 中定义
   return function createCompiler (baseOptions) {
     function compile (
       template,
@@ -4752,14 +4825,20 @@ var createCompiler = createCompilerCreator(function baseCompile (
   template,
   options
 ) {
+  // 把模板转换成 ast 抽象语法树
+  // 抽象语法树，用来以树形的方式描述代码结构
   var ast = parse(template.trim(), options);
   if (options.optimize !== false) {
+    // 优化抽象语法树
     optimize(ast, options);
   }
+  // 把抽象语法树生成字符串形式的 js 代码
   var code = generate(ast, options);
   return {
     ast: ast,
+    // 渲染函数
     render: code.render,
+    // 静态渲染函数，生成静态 VNode 树
     staticRenderFns: code.staticRenderFns
   }
 });
