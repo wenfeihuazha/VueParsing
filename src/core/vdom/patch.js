@@ -449,7 +449,6 @@ export function createPatchFunction (backend) {
         newStartVnode = newCh[++newStartIdx]
       } else if (sameVnode(oldEndVnode, newEndVnode)) {
         // 直接将该 VNode 节点进行 patchVnode
-        // 直接将该 VNode 节点进行 patchVnode
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
         // 获取下一组结束节点
         oldEndVnode = oldCh[--oldEndIdx]
@@ -507,7 +506,6 @@ export function createPatchFunction (backend) {
       refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
       addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
     } else if (newStartIdx > newEndIdx) {
-      // 当结束时 newStartIdx > newEndIdx，新节点遍历完，但是旧节点还没有
       // 当结束时 newStartIdx > newEndIdx，新节点遍历完，但是旧节点还没有
       removeVnodes(oldCh, oldStartIdx, oldEndIdx)
     }
@@ -759,7 +757,7 @@ export function createPatchFunction (backend) {
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     // 新的 VNode 不存在
     if (isUndef(vnode)) {
-      // 老的 VNode 存在，删除老的 VNode
+      // 老的 VNode 存在，执行 Destroy 钩子函数
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
     }

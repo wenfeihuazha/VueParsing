@@ -1036,7 +1036,7 @@ Object.defineProperties( VNode.prototype, prototypeAccessors );
  */
 
 var arrayProto = Array.prototype;
-// 克隆数组的原型
+// 使用数组的原型创建一个新的对象
 var arrayMethods = Object.create(arrayProto);
 // 修改数组元素的方法
 var methodsToPatch = [
@@ -1105,7 +1105,7 @@ var Observer = function Observer (value) {
   this.dep = new Dep();
   // 初始化实例的 vmCount 为0
   this.vmCount = 0;
-  // 将实例挂载到观测对象的 __ob__ 属性
+  // 将实例挂载到观察对象的 __ob__ 属性
   def(value, '__ob__', this);
   // 数组的响应式处理
   if (Array.isArray(value)) {
@@ -1117,7 +1117,7 @@ var Observer = function Observer (value) {
     // 为数组中的每一个对象创建一个 observer 实例
     this.observeArray(value);
   } else {
-    // 编译对象中的每一个属性，转换成 setter/getter
+    // 遍历对象中的每一个属性，转换成 setter/getter
     this.walk(value);
   }
 };
@@ -1251,7 +1251,7 @@ function defineReactive (
       // 如果预定义的 getter 存在则 value 等于getter 调用的返回值
       // 否则直接赋予属性值
       var value = getter ? getter.call(obj) : val;
-      // 如果新值等于旧值或者新值旧值为null则不执行
+      // 如果新值等于旧值或者新值旧值为NaN则不执行
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
@@ -1271,7 +1271,7 @@ function defineReactive (
       }
       // 如果新值是对象，观察子对象并返回 子的 observer 对象
       childOb = !shallow && observe(newVal);
-      // 发布更改通知
+      // 派发更新(发布更改通知)
       dep.notify();
     }
   });
@@ -1292,7 +1292,7 @@ function set (target, key, val) {
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key);
     // 通过 splice 对key位置的元素进行替换
-    // splice 在 array.js进行了响应化的处理
+    // splice 在 array.js 进行了响应化的处理
     target.splice(key, 1, val);
     return val
   }
@@ -1303,7 +1303,7 @@ function set (target, key, val) {
   }
   // 获取 target 中的 observer 对象
   var ob = (target).__ob__;
-  // 如果 target 是 vue 实例或者$data 直接返回
+  // 如果 target 是 vue 实例或者 $data 直接返回
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -3587,7 +3587,7 @@ function optimize (root, options) {
   isStaticKey = genStaticKeysCached(options.staticKeys || '');
   isPlatformReservedTag = options.isReservedTag || no;
   // first pass: mark all non-static nodes.
-  // 标记非静态节点
+  // 标记静态节点
   markStatic(root);
   // second pass: mark static roots.
   // 标记静态根节点
@@ -4025,6 +4025,7 @@ function genIfConditions (
   altEmpty
 ) {
   if (!conditions.length) {
+    // _e() --> createEmpyVNode()
     return altEmpty || '_e()'
   }
 
@@ -4373,12 +4374,15 @@ function genNode (node, state) {
 }
 
 function genText (text) {
+  // _v() --> createTextVNode()
   return ("_v(" + (text.type === 2
     ? text.expression // no need for () because already wrapped in _s()
+    // JSON.stringify(text.text) 字符串加上引号 hello -> "hello"
     : transformSpecialNewlines(JSON.stringify(text.text))) + ")")
 }
 
 function genComment (comment) {
+  // JSON.stringify(text.text) 字符串加上引号 hello -> "hello"
   return ("_e(" + (JSON.stringify(comment.text)) + ")")
 }
 
@@ -4440,7 +4444,9 @@ function genProps (props) {
 // #3895, #4268
 function transformSpecialNewlines (text) {
   return text
+    // 行分隔符
     .replace(/\u2028/g, '\\u2028')
+    // 段落分隔符
     .replace(/\u2029/g, '\\u2029')
 }
 

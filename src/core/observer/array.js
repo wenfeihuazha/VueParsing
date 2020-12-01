@@ -6,7 +6,7 @@
 import { def } from '../util/index'
 
 const arrayProto = Array.prototype
-// 克隆数组的原型
+// 使用数组的原型创建一个新的对象
 export const arrayMethods = Object.create(arrayProto)
 // 修改数组元素的方法
 const methodsToPatch = [

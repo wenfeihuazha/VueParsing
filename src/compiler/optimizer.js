@@ -23,7 +23,7 @@ export function optimize (root: ?ASTElement, options: CompilerOptions) {
   isStaticKey = genStaticKeysCached(options.staticKeys || '')
   isPlatformReservedTag = options.isReservedTag || no
   // first pass: mark all non-static nodes.
-  // 标记非静态节点
+  // 标记静态节点
   markStatic(root)
   // second pass: mark static roots.
   // 标记静态根节点

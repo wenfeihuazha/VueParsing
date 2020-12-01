@@ -47,7 +47,7 @@ export class Observer {
     this.dep = new Dep()
     // 初始化实例的 vmCount 为0
     this.vmCount = 0
-    // 将实例挂载到观测对象的 __ob__ 属性
+    // 将实例挂载到观察对象的 __ob__ 属性
     def(value, '__ob__', this)
     // 数组的响应式处理
     if (Array.isArray(value)) {
@@ -59,7 +59,7 @@ export class Observer {
       // 为数组中的每一个对象创建一个 observer 实例
       this.observeArray(value)
     } else {
-      // 编译对象中的每一个属性，转换成 setter/getter
+      // 遍历对象中的每一个属性，转换成 setter/getter
       this.walk(value)
     }
   }
@@ -194,7 +194,7 @@ export function defineReactive (
       // 如果预定义的 getter 存在则 value 等于getter 调用的返回值
       // 否则直接赋予属性值
       const value = getter ? getter.call(obj) : val
-      // 如果新值等于旧值或者新值旧值为null则不执行
+      // 如果新值等于旧值或者新值旧值为NaN则不执行
       /* eslint-disable no-self-compare */
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
@@ -214,7 +214,7 @@ export function defineReactive (
       }
       // 如果新值是对象，观察子对象并返回 子的 observer 对象
       childOb = !shallow && observe(newVal)
-      // 发布更改通知
+      // 派发更新(发布更改通知)
       dep.notify()
     }
   })
@@ -235,7 +235,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     // 通过 splice 对key位置的元素进行替换
-    // splice 在 array.js进行了响应化的处理
+    // splice 在 array.js 进行了响应化的处理
     target.splice(key, 1, val)
     return val
   }
@@ -246,7 +246,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   }
   // 获取 target 中的 observer 对象
   const ob = (target: any).__ob__
-  // 如果 target 是 vue 实例或者$data 直接返回
+  // 如果 target 是 vue 实例或者 $data 直接返回
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +

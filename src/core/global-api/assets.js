@@ -31,7 +31,7 @@ export function initAssetRegisters (Vue: GlobalAPI) {
           definition = { bind: definition, update: definition }
         }
         // 全局注册，存储资源并赋值
-        // this.options[components]['comp'] = Ctor
+        // this.options['components']['comp'] = definition
         this.options[type + 's'][id] = definition
         return definition
       }

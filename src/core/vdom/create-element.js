@@ -59,6 +59,7 @@ export function _createElement (
     )
     return createEmptyVNode()
   }
+  // <component v-bind:is="currentTabComponent"></component>
   // object syntax in v-bind
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
@@ -91,8 +92,7 @@ export function _createElement (
     // 返回一维数组，处理用户手写的 render
     children = normalizeChildren(children)
   } else if (normalizationType === SIMPLE_NORMALIZE) {
-    // 把嵌套数组，转换成一维数组
-    // 处理 template 编译后的 render
+    // 把二维数组，转换成一维数组
     children = simpleNormalizeChildren(children)
   }
   let vnode, ns

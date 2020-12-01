@@ -161,6 +161,7 @@ function genIfConditions (
   altEmpty?: string
 ): string {
   if (!conditions.length) {
+    // _e() --> createEmpyVNode()
     return altEmpty || '_e()'
   }
 
@@ -536,13 +537,16 @@ function genNode (node: ASTNode, state: CodegenState): string {
 }
 
 export function genText (text: ASTText | ASTExpression): string {
+  // _v() --> createTextVNode()
   return `_v(${text.type === 2
     ? text.expression // no need for () because already wrapped in _s()
+    // JSON.stringify(text.text) 字符串加上引号 hello -> "hello"
     : transformSpecialNewlines(JSON.stringify(text.text))
   })`
 }
 
 export function genComment (comment: ASTText): string {
+  // JSON.stringify(text.text) 字符串加上引号 hello -> "hello"
   return `_e(${JSON.stringify(comment.text)})`
 }
 
@@ -616,6 +620,8 @@ function generateValue (value) {
 // #3895, #4268
 function transformSpecialNewlines (text: string): string {
   return text
+    // 行分隔符
     .replace(/\u2028/g, '\\u2028')
+    // 段落分隔符
     .replace(/\u2029/g, '\\u2029')
 }
